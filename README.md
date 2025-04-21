@@ -99,7 +99,8 @@ Then, move the downloaded LIBERO datasets to `./datasets/`.
 
 Now, generate our version of the LIBERO dataset:
 ```
-python data_generation_scripts/generate_libero_data_lmdb_lowres.py
+python data_generation_scripts/generate_libero_data_for_clustering.py # for the clustering algorithm
+python data_generation_scripts/generate_libero_data_lmdb_lowres.py # for actual policy training
 ```
 
 Now, run the clustering algorithm with default parameters (K-means `K=8`, Median filtering with a window size of `7`):

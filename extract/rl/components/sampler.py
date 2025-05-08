@@ -43,7 +43,7 @@ class Sampler:
                 with self._agent.rollout_mode():
                     while step < batch_size:
                         # perform one rollout step
-                        extra_info = AttrDict(lang=self._lang)
+                        extra_info = AttrDict(lang=self._lang, global_step=global_step)
                         agent_output = self.sample_action(self._obs, extra_info)
                         if agent_output.action is None:
                             self._episode_reset(global_step)

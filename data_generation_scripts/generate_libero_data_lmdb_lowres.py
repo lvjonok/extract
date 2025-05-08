@@ -15,7 +15,7 @@ from sentence_transformers import SentenceTransformer
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # TODO: libero_90 was removed for now
-splits = ["libero_10", "libero_goal", "libero_object", "libero_spatial"]
+splits = ["libero_90", "libero_10", "libero_goal", "libero_object", "libero_spatial"]
 
 if not os.path.exists(os.path.join(base_path, "processed_libero_dataset_lowres")):
     os.mkdir(os.path.join(base_path, "processed_libero_dataset_lowres"))

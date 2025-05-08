@@ -45,6 +45,8 @@ from extract.components.params import get_args
 
 WANDB_PROJECT_NAME = "p-amazon-intern"
 WANDB_ENTITY_NAME = "jesbu1"
+WANDB_PROJECT_NAME = "extract"
+WANDB_ENTITY_NAME = "lvjonok-korea-advanced-institute-of-science-and-technology"
 
 
 class ModelTrainer(BaseTrainer):

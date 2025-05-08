@@ -40,6 +40,8 @@ from extract.rl.components.replay_buffer import RolloutStorage
 
 WANDB_PROJECT_NAME = "p-amazon-intern"
 WANDB_ENTITY_NAME = "jesbu1"
+WANDB_PROJECT_NAME = "extract"
+WANDB_ENTITY_NAME = "lvjonok-korea-advanced-institute-of-science-and-technology"
 
 
 def print_hello(rank, size, name):

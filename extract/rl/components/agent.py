@@ -312,9 +312,9 @@ class HierarchicalAgent(BaseAgent):
             )
         )
         shape_diff = abs(len(output.hl_action.shape) - len(output.action.shape))
-        assert (
-            shape_diff == 0
-        ), "High-level and low-level action shapes do not match! Can result in a broadcasted single value for the action bug"
+        assert shape_diff == 0, (
+            "High-level and low-level action shapes do not match! Can result in a broadcasted single value for the action bug"
+        )
         return self._remove_batch(output) if len(obs.shape) == 1 else output
 
     def update(self, experience_batches):
@@ -433,3 +433,86 @@ class MixedIntervalHierarchicalAgent(HierarchicalAgent):
     @property
     def _perform_hl_step_now(self):
         return len(self.ll_agent.action_plan) == 0
+
+
+class ResidualAgent(BaseAgent):
+    """
+    Wraps a frozen base_agent and a trainable residual_agent.
+    Combines their actions additively.
+    """
+
+    def __init__(self, config):
+        super().__init__(config)
+        self.base = self._hp.base_agent(self._hp.overwrite(self._hp.base_agent_params))
+        self.residual = self._hp.residual_agent(
+            self._hp.overwrite(self._hp.residual_agent_params)
+        )
+
+        # freeze every parameter in the base agent (including its policy, critics, etc.)
+        for p in self.base.parameters():
+            p.requires_grad = False
+
+        # apply zero weights to the residual agent
+        for p in self.residual.parameters():
+            if p.dim() == 1:
+                p.data.zero_()
+            else:
+                p.data.fill_(0.0)
+
+    def act(self, obs, extra_info=None):
+        # get base action
+        a_base = self.base.act(obs, extra_info)
+        # get residual action
+        a_res = self.residual.act(obs, extra_info)
+
+        output = AttrDict(a_base)
+        output.action = a_base.action
+
+        ratio = 0.0
+        if hasattr(extra_info, "global_step") and extra_info.global_step is not None:
+            # that means we are training and can use this step for progressive exploration
+            H = 400_000  # after this step, we are going to use the residual all the time
+            ratio = min(1, extra_info.global_step / H)
+
+        # sample and decide whether to use the residual or not
+        if np.random.rand() < ratio:
+            output.action += a_res.action * 0.1
+
+        # # return a_base
+
+        # # print("Base action: ", a_base)
+        # # # add base and residual action
+        # # print("Residual action: ", a_res)
+
+        # output = AttrDict(a_base)
+        # output.action = a_base.action + a_res.action * 0.1
+
+        # output = AttrDict(action=a_base.action + a_res.action)
+        extra_env_info = self.add_extra_env_info()
+        output.extra_env_info = extra_env_info
+
+        return output
+
+    def add_experience(self, *args, **kwargs):
+        # send only to residual (or both if needed)
+        return self.residual.add_experience(*args, **kwargs)
+
+    def update(self, *args, **kwargs):
+        # update only residual
+        return self.residual.update(*args, **kwargs)
+
+    def sync(self, *args, **kwargs):
+        # sync both if MPI or target networks used
+        # self.base.sync(*args, **kwargs)
+        self.residual.sync(*args, **kwargs)
+
+    def state_dict(self):
+        # save both
+        return {
+            "base": self.base.state_dict(),
+            "residual": self.residual.state_dict(),
+        }
+
+    def load_state_dict(self, sd):
+        self.base.load_state_dict(sd["base"])
+        self.residual.load_state_dict(sd["residual"])
